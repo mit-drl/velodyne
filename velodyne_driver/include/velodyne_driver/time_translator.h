@@ -1,4 +1,4 @@
-// Copyright (C) 2007, 2009, 2010, 2012, 2015Yaxin Liu, Patrick Beeson, Austin Robot Technology, Jack O'Quin
+// Copyright (C) 2019 Nick Stathas
 // All rights reserved.
 //
 // Software License Agreement (BSD License 2.0)
@@ -32,11 +32,10 @@
 
 /** @file
  *
- *  Velodyne 3D LIDAR data input classes
+ *  Velodyne 3D LIDAR packet time translation classes
  *
- *    These classes provide raw Velodyne LIDAR input packets from
- *    either a live socket interface or a previously-saved PCAP dump
- *    file.
+ *    These classes provide different methods for translating
+ *    a packet's reception time to ROS time.
  *
  *  Classes:
  *
@@ -50,50 +49,46 @@
  *                      from a PCAP dump file
  */
 
-#ifndef VELODYNE_DRIVER_INPUT_H
-#define VELODYNE_DRIVER_INPUT_H
-
-#include <stdio.h>
-#include <string>
-#include <memory>
+#ifndef VELODYNE_DRIVER_TIME_TRANSLATOR_H
+#define VELODYNE_DRIVER_TIME_TRANSLATOR_H
 
 #include <ros/ros.h>
-#include <velodyne_msgs/VelodynePacket.h>
-#include <velodyne_driver/time_translator.h>
+
+#include <velodyne_driver/time_conversion.hpp>
 
 namespace velodyne_driver
 {
 
-static uint16_t DATA_PORT_NUMBER = 2368;      // default data port
-static uint16_t POSITION_PORT_NUMBER = 8308;  // default position port
-
-/** @brief Velodyne input base class */
-class Input
+/** @brief Velodyne time translation base class */
+class TimeTranslator
 {
 public:
-  Input(ros::NodeHandle private_nh,
-        std::unique_ptr<TimeTranslator> time_translator,
-        uint16_t port);
-  virtual ~Input() {}
+  TimeTranslator() = default;
+  virtual ~TimeTranslator() = default;
 
-  /** @brief Read one Velodyne packet.
-   *
-   * @param pkt points to VelodynePacket message
-   *
-   * @returns 0 if successful,
-   *          -1 if end of file
-   *          > 0 if incomplete packet (is this possible?)
-   */
-  virtual int getPacket(velodyne_msgs::VelodynePacket *pkt,
-                        const double time_offset) = 0;
+  virtual ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) = 0;
+};
 
-protected:
-  ros::NodeHandle private_nh_;
-  uint16_t port_;
-  std::string devip_str_;
-  std::unique_ptr<TimeTranslator> time_translator_;
+class GPSTimeTranslator : public TimeTranslator
+{
+public:
+  GPSTimeTranslator() = default;
+
+  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) override {
+    return rosTimeFromGpsTimestamp(data + 1200);
+  }
+};
+
+class AverageTimeTranslator : public TimeTranslator
+{
+public:
+  AverageTimeTranslator() = default;
+
+  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) override {
+    return ros::Time((time_begin.toSec() + time_recv.toSec()) / 2.0);
+  }
 };
 
 }  // namespace velodyne_driver
 
-#endif  // VELODYNE_DRIVER_INPUT_H
+#endif  // VELODYNE_DRIVER_TIME_TRANSLATOR_H

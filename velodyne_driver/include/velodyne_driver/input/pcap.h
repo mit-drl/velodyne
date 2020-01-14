@@ -1,4 +1,5 @@
 #include <velodyne_driver/input.h>
+#include <pcap.h>
 
 #ifndef VELODYNE_DRIVER_INPUT_PCAP_H
 #define VELODYNE_DRIVER_INPUT_PCAP_H
@@ -15,6 +16,7 @@ class InputPCAP: public Input
 {
 public:
   InputPCAP(ros::NodeHandle private_nh,
+            std::unique_ptr<TimeTranslator> time_translator,
             uint16_t port = DATA_PORT_NUMBER,
             double packet_rate = 0.0,
             std::string filename = "",
@@ -23,8 +25,8 @@ public:
             double repeat_delay = 0.0);
   virtual ~InputPCAP();
 
-  virtual int getPacket(velodyne_msgs::VelodynePacket *pkt,
-                        const double time_offset);
+  int getPacket(velodyne_msgs::VelodynePacket *pkt,
+                const double time_offset) override;
   void setDeviceIP(const std::string& ip);
 
 private:

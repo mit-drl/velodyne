@@ -40,13 +40,13 @@
  * correct. Velodyne only returns time since the top of the hour, so if the computer clock
  * and the velodyne clock (gps-synchronized) are a little off, there is a chance the wrong
  * hour may be associated with the timestamp
- * 
+ *
  * @param stamp timestamp recovered from velodyne
  * @param nominal_stamp time coming from computer's clock
  * @return timestamp from velodyne, possibly shifted by 1 hour if the function arguments
  * disagree by more than a half-hour.
  */
-ros::Time resolveHourAmbiguity(const ros::Time &stamp, const ros::Time &nominal_stamp) {
+static inline ros::Time resolveHourAmbiguity(const ros::Time &stamp, const ros::Time &nominal_stamp) {
     const int HALFHOUR_TO_SEC = 1800;
     ros::Time retval = stamp;
     if (nominal_stamp.sec > stamp.sec) {
@@ -59,7 +59,7 @@ ros::Time resolveHourAmbiguity(const ros::Time &stamp, const ros::Time &nominal_
     return retval;
 }
 
-ros::Time rosTimeFromGpsTimestamp(const uint8_t * const data) {
+static inline ros::Time rosTimeFromGpsTimestamp(const uint8_t * const data) {
     const int HOUR_TO_SEC = 3600;
     // time for each packet is a 4 byte uint
     // It is the number of microseconds from the top of the hour

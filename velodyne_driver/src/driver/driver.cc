@@ -170,17 +170,19 @@ VelodyneDriver::VelodyneDriver(ros::NodeHandle node,
 
   config_.enabled = true;
 
+  std::unique_ptr<TimeTranslator> time_translator = std::make_unique<AverageTimeTranslator>();
+
   // open Velodyne input device or file
   if (dump_file != "")                  // have PCAP file?
     {
       // read data from packet capture file
-      input_.reset(new velodyne_driver::InputPCAP(private_nh, udp_port,
-                                                  packet_rate, dump_file));
+      input_.reset(new velodyne_driver::InputPCAP(private_nh, std::move(time_translator),
+                                                  udp_port, packet_rate, dump_file));
     }
   else
     {
       // read data from live socket
-      input_.reset(new velodyne_driver::InputSocket(private_nh, udp_port));
+      input_.reset(new velodyne_driver::InputSocket(private_nh, std::move(time_translator), udp_port));
     }
 
   // raw packet output topic

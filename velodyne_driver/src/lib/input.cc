@@ -72,12 +72,15 @@ namespace velodyne_driver
    *  @param private_nh ROS private handle for calling node.
    *  @param port UDP port number.
    */
-  Input::Input(ros::NodeHandle private_nh, uint16_t port):
+  Input::Input(ros::NodeHandle private_nh,
+               std::unique_ptr<TimeTranslator> time_translator,
+               uint16_t port):
     private_nh_(private_nh),
-    port_(port)
+    port_(port),
+    time_translator_(std::move(time_translator))
   {
     private_nh.param("device_ip", devip_str_, std::string(""));
-    private_nh.param("gps_time", gps_time_, false);
+    // private_nh.param("gps_time", gps_time_, false);  // TODO(nistath): Move to whoever constructs Input
     if (!devip_str_.empty())
       ROS_INFO_STREAM("Only accepting packets from IP address: "
                       << devip_str_);
@@ -92,8 +95,10 @@ namespace velodyne_driver
    *  @param private_nh ROS private handle for calling node.
    *  @param port UDP port number
    */
-  InputSocket::InputSocket(ros::NodeHandle private_nh, uint16_t port):
-    Input(private_nh, port)
+  InputSocket::InputSocket(ros::NodeHandle private_nh,
+                           std::unique_ptr<TimeTranslator> time_translator,
+                           uint16_t port):
+    Input(private_nh, std::move(time_translator), port)
   {
     sockfd_ = -1;
 
@@ -140,7 +145,7 @@ namespace velodyne_driver
   /** @brief Get one velodyne packet. */
   int InputSocket::getPacket(velodyne_msgs::VelodynePacket *pkt, const double time_offset)
   {
-    double time1 = ros::Time::now().toSec();
+    auto time_begin = ros::Time::now();
 
     struct pollfd fds[1];
     fds[0].fd = sockfd_;
@@ -225,16 +230,8 @@ namespace velodyne_driver
                          << nbytes << " bytes");
       }
 
-    if (!gps_time_) {
-      // Average the times at which we begin and end reading.  Use that to
-      // estimate when the scan occurred. Add the time offset.
-      double time2 = ros::Time::now().toSec();
-      pkt->stamp = ros::Time((time2 + time1) / 2.0 + time_offset);
-    } else {
-      // time for each packet is a 4 byte uint located starting at offset 1200 in
-      // the data packet
-      pkt->stamp = rosTimeFromGpsTimestamp(&(pkt->data[1200]));
-    }
+    auto time_recv = ros::Time::now();
+    pkt->stamp = Input::time_translator_->translate(pkt->data.data(), time_begin, time_recv);
 
     return 0;
   }
@@ -250,10 +247,11 @@ namespace velodyne_driver
    *  @param packet_rate expected device packet frequency (Hz)
    *  @param filename PCAP dump file name
    */
-  InputPCAP::InputPCAP(ros::NodeHandle private_nh, uint16_t port,
-                       double packet_rate, std::string filename,
+  InputPCAP::InputPCAP(ros::NodeHandle private_nh,
+                       std::unique_ptr<TimeTranslator> time_translator,
+                       uint16_t port, double packet_rate, std::string filename,
                        bool read_once, bool read_fast, double repeat_delay):
-    Input(private_nh, port),
+    Input(private_nh, std::move(time_translator), port),
     packet_rate_(packet_rate),
     filename_(filename)
   {
