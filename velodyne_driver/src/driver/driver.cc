@@ -170,7 +170,18 @@ VelodyneDriver::VelodyneDriver(ros::NodeHandle node,
 
   config_.enabled = true;
 
-  std::unique_ptr<TimeTranslator> time_translator = std::make_unique<AverageTimeTranslator>();
+  bool gps_time;
+  private_nh.param("gps_time", gps_time, false);
+
+  std::unique_ptr<TimeTranslator> time_translator;
+  if (gps_time)
+  {
+    time_translator = std::make_unique<GPSTimeTranslator>();
+  }
+  else
+  {
+    time_translator = std::make_unique<AverageTimeTranslator>();
+  }
 
   // open Velodyne input device or file
   if (dump_file != "")                  // have PCAP file?

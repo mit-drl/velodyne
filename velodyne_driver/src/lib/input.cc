@@ -80,7 +80,6 @@ namespace velodyne_driver
     time_translator_(std::move(time_translator))
   {
     private_nh.param("device_ip", devip_str_, std::string(""));
-    // private_nh.param("gps_time", gps_time_, false);  // TODO(nistath): Move to whoever constructs Input
     if (!devip_str_.empty())
       ROS_INFO_STREAM("Only accepting packets from IP address: "
                       << devip_str_);
