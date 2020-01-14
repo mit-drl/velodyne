@@ -1,0 +1,3 @@
+[submodule "cuckoo_time_translator"]
+	path = cuckoo_time_translator
+	url = git@github.com:ethz-asl/cuckoo_time_translator.git
