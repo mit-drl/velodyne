@@ -142,7 +142,7 @@ namespace velodyne_driver
   }
 
   /** @brief Get one velodyne packet. */
-  int InputSocket::getPacket(velodyne_msgs::VelodynePacket *pkt, const double time_offset)
+  int InputSocket::getPacket(velodyne_msgs::VelodynePacket *pkt, const ros::Duration time_offset)
   {
     auto time_begin = ros::Time::now();
 
@@ -230,7 +230,7 @@ namespace velodyne_driver
       }
 
     auto time_recv = ros::Time::now();
-    pkt->stamp = Input::time_translator_->translate(pkt->data.data(), time_begin, time_recv);
+    pkt->stamp = Input::time_translator_->translate(pkt->data.data(), time_begin, time_recv) + time_offset;
 
     return 0;
   }
@@ -295,7 +295,7 @@ namespace velodyne_driver
   }
 
   /** @brief Get one velodyne packet. */
-  int InputPCAP::getPacket(velodyne_msgs::VelodynePacket *pkt, const double time_offset)
+  int InputPCAP::getPacket(velodyne_msgs::VelodynePacket *pkt, const ros::Duration time_offset)
   {
     struct pcap_pkthdr *header;
     const u_char *pkt_data;

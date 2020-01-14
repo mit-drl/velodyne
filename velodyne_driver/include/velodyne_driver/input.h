@@ -85,7 +85,7 @@ public:
    *          > 0 if incomplete packet (is this possible?)
    */
   virtual int getPacket(velodyne_msgs::VelodynePacket *pkt,
-                        const double time_offset) = 0;
+                        const ros::Duration time_offset) = 0;
 
 protected:
   ros::NodeHandle private_nh_;

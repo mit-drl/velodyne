@@ -74,7 +74,7 @@ private:
     int    npackets;                 // number of packets to collect
     double rpm;                      // device rotation rate (RPMs)
     int cut_angle;                   // cutting angle in 1/100°
-    double time_offset;              // time in seconds added to each velodyne time stamp
+    ros::Duration time_offset;       // time in seconds added to each velodyne time stamp
     bool enabled;                    // polling is enabled
     bool timestamp_first_packet;
   }

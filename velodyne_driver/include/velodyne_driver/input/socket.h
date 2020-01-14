@@ -20,7 +20,7 @@ public:
   virtual ~InputSocket();
 
   int getPacket(velodyne_msgs::VelodynePacket *pkt,
-                const double time_offset) override;
+                const ros::Duration time_offset) override;
   void setDeviceIP(const std::string& ip);
 
 private:

@@ -294,7 +294,7 @@ void VelodyneDriver::callback(velodyne_driver::VelodyneNodeConfig &config,
   ROS_INFO("Reconfigure Request");
   if (level & 1)
   {
-    config_.time_offset = config.time_offset;
+    config_.time_offset = ros::Duration(config.time_offset);
   }
   if (level & 2)
   {
