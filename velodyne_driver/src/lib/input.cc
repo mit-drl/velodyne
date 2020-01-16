@@ -230,7 +230,7 @@ namespace velodyne_driver
       }
 
     auto time_recv = ros::Time::now();
-    pkt->stamp = Input::time_translator_->translate(pkt->data.data(), time_begin, time_recv) + time_offset;
+    pkt->stamp = Input::time_translator_->translate(pkt->data.data(), time_begin, time_recv, time_offset);
 
     return 0;
   }

@@ -55,6 +55,7 @@
 #include <ros/ros.h>
 
 #include <velodyne_driver/time_conversion.hpp>
+#include <cuckoo_time_translator/DeviceTimeTranslator.h>
 
 namespace velodyne_driver
 {
@@ -66,7 +67,7 @@ public:
   TimeTranslator() = default;
   virtual ~TimeTranslator() = default;
 
-  virtual ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) = 0;
+  virtual ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv, ros::Duration offset) = 0;
 };
 
 class GPSTimeTranslator : public TimeTranslator
@@ -74,8 +75,8 @@ class GPSTimeTranslator : public TimeTranslator
 public:
   GPSTimeTranslator() = default;
 
-  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) override {
-    return rosTimeFromGpsTimestamp(data + 1200);
+  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv, ros::Duration offset) override {
+    return rosTimeFromGpsTimestamp(data + 1200) + offset;
   }
 };
 
@@ -84,10 +85,31 @@ class AverageTimeTranslator : public TimeTranslator
 public:
   AverageTimeTranslator() = default;
 
-  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv) override {
-    return ros::Time((time_begin.toSec() + time_recv.toSec()) / 2.0);
+  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv, ros::Duration offset) override {
+    return ros::Time((time_begin.toSec() + time_recv.toSec()) / 2.0) + offset;
   }
 };
+
+class CuckooTimeTranslator : public TimeTranslator
+{
+public:
+  CuckooTimeTranslator(ros::NodeHandle private_nh) : time_translator_(
+        cuckoo_time_translator::WrappingClockParameters(
+          3600 * 1e6, 1e6 // wraps every hour and runs at 1MHz according to documentation!
+        ),
+        private_nh.getNamespace(),
+        cuckoo_time_translator::Defaults().setFilterAlgorithm(cuckoo_time_translator::FilterAlgorithm::ConvexHull)
+  ) {}
+
+  ros::Time translate(uint8_t const* data, ros::Time time_begin, ros::Time time_recv, ros::Duration offset) override {
+    uint32_t const hardware_time = getRawHardwareTimesamp(data + 1200);
+    return time_translator_.update(hardware_time, time_recv, offset.toSec());
+  }
+
+protected:
+  cuckoo_time_translator::DefaultDeviceTimeUnwrapperAndTranslator time_translator_;
+};
+
 
 }  // namespace velodyne_driver
 
